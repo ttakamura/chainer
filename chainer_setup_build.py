@@ -84,6 +84,9 @@ def get_compiler_setting():
     if not cuda_path and path.exists('/usr/local/cuda'):
         cuda_path = '/usr/local/cuda'
 
+    if not cuda_path and path.exists('/usr/local/cuda-7.0'):
+        cuda_path = '/usr/local/cuda-7.0'
+
     include_dirs = []
     library_dirs = []
     define_macros = []
