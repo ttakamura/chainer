@@ -416,6 +416,7 @@ class TestVariableConstantOp(unittest.TestCase):
     def setUp(self):
         self.x = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         self.gy = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
+        self.ggx = numpy.random.uniform(.5, 1, self.shape).astype(self.dtype)
         self.value = 0.5
 
     def check_forward(self, op, x_data):
@@ -589,6 +590,32 @@ class TestVariableConstantOp(unittest.TestCase):
     @attr.gpu
     def test_rpow_backward_gpu(self):
         self.backward_gpu(lambda x, y: y ** x)
+
+    def check_double_backward(self, op, x_data, gy_data, ggx_data):
+        options = {}
+        if self.dtype == numpy.float16:
+            options = {'atol': 5e-3, 'rtol': 5e-2}
+
+        def f(x):
+            x = op(x, self.value)
+            return x * x
+        gradient_check.check_double_backward(
+            f, x_data, gy_data, ggx_data, dtype=numpy.float64, **options)
+
+    def double_backward_cpu(self, op):
+        self.check_double_backward(op, self.x, self.gy, self.ggx)
+
+    def test_rdiv_double_backward_cpu(self):
+        self.double_backward_cpu(lambda x, y: y / x)
+
+    def double_backward_gpu(self, op):
+        self.check_double_backward(
+            op, cuda.to_gpu(self.x), cuda.to_gpu(self.gy),
+            cuda.to_gpu(self.ggx))
+
+    @attr.gpu
+    def test_rdiv_double_backward_gpu(self):
+        self.double_backward_gpu(lambda x, y: y / x)
 
 
 @testing.parameterize(*testing.product({
